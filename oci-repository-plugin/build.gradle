@@ -115,7 +115,8 @@ task integTest(type: RestIntegTestTask) {
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    systemProperty "java.security.policy", "file://${projectDir}/src/main/resources/plugin-security.policy"
+    systemProperty "java.security.policy", "file://${projectDir}/src/test/resources/test-security.policy"
+    systemProperty 'log4j2.configurationFile', "${projectDir}/src/test/resources/log4j2-test.xml"
     testLogging.showStandardStreams = true
 
     include '**/*IT.class'
@@ -128,7 +129,7 @@ integTest {
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
-    systemProperty "java.security.policy", "file://${projectDir}/src/main/resources/plugin-security.policy"
+    systemProperty "java.security.policy", "file://${projectDir}/src/test/resources/test-security.policy"
 
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)

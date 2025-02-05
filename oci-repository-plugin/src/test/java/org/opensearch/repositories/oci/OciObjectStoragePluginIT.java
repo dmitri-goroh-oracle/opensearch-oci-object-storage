@@ -67,7 +67,7 @@ public class OciObjectStoragePluginIT extends OpenSearchRestTestCase {
         final int testObjectStorageServerPort = 8081;
 
         try (NonJerseyServer nonJerseyServer = new NonJerseyServer(testObjectStorageServerPort)) {
-            SocketAccess.doPrivilegedVoidIOException(nonJerseyServer::start);
+            nonJerseyServer.start();
             try (final RestHighLevelClient restHighLevelClient = getRestHighLevelClient()) {
                 logger.info("1. Test cluster can load the plugin");
                 // 1. Test cluster can load the plugin
@@ -84,8 +84,6 @@ public class OciObjectStoragePluginIT extends OpenSearchRestTestCase {
                 logger.info("4. Delete snapshot from repository");
                 // 4. Delete snapshot from repository
                 testDeleteSnapshotFromRepository(restHighLevelClient);
-
-                SocketAccess.doPrivilegedVoidIOException(nonJerseyServer::close);
             }
         }
     }

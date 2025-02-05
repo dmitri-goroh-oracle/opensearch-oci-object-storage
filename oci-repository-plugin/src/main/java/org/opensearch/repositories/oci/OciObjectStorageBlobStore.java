@@ -225,52 +225,45 @@ class OciObjectStorageBlobStore implements BlobStore {
     private void createBucket(
             final String bucketCompartmentId, final String namespace, final String bucketName) {
         try {
-            SocketAccess.doPrivilegedIOException(
-                    () ->
-                            client().createBucket(
-                                            CreateBucketRequest.builder()
-                                                    .namespaceName(namespace)
-                                                    .createBucketDetails(
-                                                            CreateBucketDetails.builder()
-                                                                    .compartmentId(
-                                                                            bucketCompartmentId)
-                                                                    .name(bucketName)
-                                                                    .storageTier(
-                                                                            CreateBucketDetails
-                                                                                    .StorageTier
-                                                                                    .Standard)
-                                                                    .publicAccessType(
-                                                                            CreateBucketDetails
-                                                                                    .PublicAccessType
-                                                                                    .NoPublicAccess)
-                                                                    .build())
-                                                    .build(),
-                                            new AsyncHandler<>() {
-                                                @Override
-                                                public void onSuccess(
-                                                        CreateBucketRequest createBucketRequest,
-                                                        CreateBucketResponse createBucketResponse) {
-                                                    log.debug(
-                                                            "successfully creating bucket: {} with"
-                                                                    + " namespace: {}",
-                                                            bucketName,
-                                                            namespace);
-                                                }
+            client().createBucket(
+                            CreateBucketRequest.builder()
+                                    .namespaceName(namespace)
+                                    .createBucketDetails(
+                                            CreateBucketDetails.builder()
+                                                    .compartmentId(bucketCompartmentId)
+                                                    .name(bucketName)
+                                                    .storageTier(
+                                                            CreateBucketDetails.StorageTier
+                                                                    .Standard)
+                                                    .publicAccessType(
+                                                            CreateBucketDetails.PublicAccessType
+                                                                    .NoPublicAccess)
+                                                    .build())
+                                    .build(),
+                            new AsyncHandler<>() {
+                                @Override
+                                public void onSuccess(
+                                        CreateBucketRequest createBucketRequest,
+                                        CreateBucketResponse createBucketResponse) {
+                                    log.debug(
+                                            "successfully creating bucket: {} with"
+                                                    + " namespace: {}",
+                                            bucketName,
+                                            namespace);
+                                }
 
-                                                @Override
-                                                public void onError(
-                                                        CreateBucketRequest createBucketRequest,
-                                                        Throwable error) {
-                                                    log.error(
-                                                            "failure creating bucket: {} with"
-                                                                    + " namespace: {}",
-                                                            bucketName,
-                                                            namespace,
-                                                            error);
-                                                }
-                                            })
-                                    .get(10, TimeUnit.SECONDS));
-        } catch (IOException e) {
+                                @Override
+                                public void onError(
+                                        CreateBucketRequest createBucketRequest, Throwable error) {
+                                    log.error(
+                                            "failure creating bucket: {} with" + " namespace: {}",
+                                            bucketName,
+                                            namespace,
+                                            error);
+                                }
+                            })
+                    .get(10, TimeUnit.SECONDS);
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             throw new BlobStoreException(
                     "Unable to force create bucket [" + bucketName + "] that doesn't exists", e);
         }
@@ -302,26 +295,20 @@ class OciObjectStorageBlobStore implements BlobStore {
         log.info("constructed pathPrefix: {} ", pathPrefix);
 
         final MapBuilder<String, BlobMetadata> mapBuilder = MapBuilder.newMapBuilder();
-        SocketAccess.doPrivilegedVoidIOException(
-                () -> {
-                    try {
-                        fullListing(client(), pathPrefix).stream()
-                                .forEach(
-                                        summary -> {
-                                            String suffixName =
-                                                    summary.getName().substring(path.length());
-                                            final long size =
-                                                    summary.getSize() != null
-                                                            ? summary.getSize()
-                                                            : 0;
-                                            PlainBlobMetadata metadata =
-                                                    new PlainBlobMetadata(suffixName, size);
-                                            mapBuilder.put(suffixName, metadata);
-                                        });
-                    } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+
+        try {
+            fullListing(client(), pathPrefix).stream()
+                    .forEach(
+                            summary -> {
+                                String suffixName = summary.getName().substring(path.length());
+                                final long size = summary.getSize() != null ? summary.getSize() : 0;
+                                PlainBlobMetadata metadata =
+                                        new PlainBlobMetadata(suffixName, size);
+                                mapBuilder.put(suffixName, metadata);
+                            });
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
 
         return mapBuilder.immutableMap();
     }
@@ -331,30 +318,25 @@ class OciObjectStorageBlobStore implements BlobStore {
         log.info("attempting to list children by path: {} ", path);
 
         final MapBuilder<String, BlobContainer> mapBuilder = MapBuilder.newMapBuilder();
-        SocketAccess.doPrivilegedVoidIOException(
-                () -> {
-                    try {
-                        fullListing(client(), pathStr).stream()
-                                .map(
-                                        objectSummary ->
-                                                objectSummary
-                                                        .getName()
-                                                        .substring(pathStr.length())
-                                                        .split("/"))
-                                .filter(name -> name.length > 1 && !name[0].isEmpty())
-                                .map(name -> name[0])
-                                .distinct()
-                                .forEach(
-                                        childName -> {
-                                            mapBuilder.put(
-                                                    childName,
-                                                    new OciObjectStorageBlobContainer(
-                                                            path.add(childName), this));
-                                        });
-                    } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        try {
+            fullListing(client(), pathStr).stream()
+                    .map(
+                            objectSummary ->
+                                    objectSummary.getName().substring(pathStr.length()).split("/"))
+                    .filter(name -> name.length > 1 && !name[0].isEmpty())
+                    .map(name -> name[0])
+                    .distinct()
+                    .forEach(
+                            childName -> {
+                                mapBuilder.put(
+                                        childName,
+                                        new OciObjectStorageBlobContainer(
+                                                path.add(childName), this));
+                            });
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+
         return mapBuilder.immutableMap();
     }
 
@@ -369,62 +351,57 @@ class OciObjectStorageBlobStore implements BlobStore {
         final long startTime = System.currentTimeMillis();
         return Failsafe.with(getRetryPolicy(blobName, opcClientRequestId, startTime, "GET"))
                 .get(
-                        () ->
-                                SocketAccess.doPrivilegedIOException(
-                                        () -> {
-                                            log.info(
-                                                    "Getting object from '/n/{}/b/{}/o/{}'."
-                                                            + " OPC-REQUEST-ID: {}",
-                                                    namespace,
-                                                    bucketName,
-                                                    blobName,
-                                                    opcClientRequestId);
-                                            return client().getObject(
-                                                            GetObjectRequest.builder()
-                                                                    .bucketName(bucketName)
-                                                                    .namespaceName(namespace)
-                                                                    .objectName(blobName)
-                                                                    .build(),
-                                                            new AsyncHandler<>() {
-                                                                @Override
-                                                                public void onSuccess(
-                                                                        GetObjectRequest
-                                                                                getObjectRequest,
-                                                                        GetObjectResponse
-                                                                                getObjectResponse) {
-                                                                    log.debug(
-                                                                            "Success getting object"
-                                                                                + " from"
-                                                                                + " '/n/{}/b/{}/o/{}'."
-                                                                                + " OPC-REQUEST-ID:"
-                                                                                + " {}",
-                                                                            namespace,
-                                                                            bucketName,
-                                                                            blobName,
-                                                                            opcClientRequestId);
-                                                                }
+                        () -> {
+                            log.info(
+                                    "Getting object from '/n/{}/b/{}/o/{}'."
+                                            + " OPC-REQUEST-ID: {}",
+                                    namespace,
+                                    bucketName,
+                                    blobName,
+                                    opcClientRequestId);
+                            return client().getObject(
+                                            GetObjectRequest.builder()
+                                                    .bucketName(bucketName)
+                                                    .namespaceName(namespace)
+                                                    .objectName(blobName)
+                                                    .build(),
+                                            new AsyncHandler<>() {
+                                                @Override
+                                                public void onSuccess(
+                                                        GetObjectRequest getObjectRequest,
+                                                        GetObjectResponse getObjectResponse) {
+                                                    log.debug(
+                                                            "Success getting object"
+                                                                    + " from"
+                                                                    + " '/n/{}/b/{}/o/{}'."
+                                                                    + " OPC-REQUEST-ID:"
+                                                                    + " {}",
+                                                            namespace,
+                                                            bucketName,
+                                                            blobName,
+                                                            opcClientRequestId);
+                                                }
 
-                                                                @Override
-                                                                public void onError(
-                                                                        GetObjectRequest
-                                                                                getObjectRequest,
-                                                                        Throwable error) {
-                                                                    log.debug(
-                                                                            "Failure getting object"
-                                                                                + " from"
-                                                                                + " '/n/{}/b/{}/o/{}'."
-                                                                                + " OPC-REQUEST-ID:"
-                                                                                + " {}",
-                                                                            namespace,
-                                                                            bucketName,
-                                                                            blobName,
-                                                                            opcClientRequestId,
-                                                                            error);
-                                                                }
-                                                            })
-                                                    .get()
-                                                    .getInputStream();
-                                        }));
+                                                @Override
+                                                public void onError(
+                                                        GetObjectRequest getObjectRequest,
+                                                        Throwable error) {
+                                                    log.debug(
+                                                            "Failure getting object"
+                                                                    + " from"
+                                                                    + " '/n/{}/b/{}/o/{}'."
+                                                                    + " OPC-REQUEST-ID:"
+                                                                    + " {}",
+                                                            namespace,
+                                                            bucketName,
+                                                            blobName,
+                                                            opcClientRequestId,
+                                                            error);
+                                                }
+                                            })
+                                    .get()
+                                    .getInputStream();
+                        });
     }
 
     /**
@@ -505,8 +482,7 @@ class OciObjectStorageBlobStore implements BlobStore {
             String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists)
             throws IOException {
         // we will always do multipart uploads
-        SocketAccess.doPrivilegedVoidIOException(
-                () -> putObject(inputStream, blobSize, blobName, !failIfAlreadyExists));
+        putObject(inputStream, blobSize, blobName, !failIfAlreadyExists);
     }
 
     /**
@@ -629,123 +605,113 @@ class OciObjectStorageBlobStore implements BlobStore {
      */
     void deleteBlobsIgnoringIfNotExists(Collection<String> blobNames) throws IOException {
         ObjectStorageAsync client = client();
-        SocketAccess.doPrivilegedVoidIOException(
-                () ->
-                        blobNames.stream()
-                                .forEach(
-                                        blobName -> {
-                                            List<ObjectSummary> objectSummaries;
-                                            try {
-                                                objectSummaries =
-                                                        client.listObjects(
-                                                                        ListObjectsRequest.builder()
-                                                                                .bucketName(
-                                                                                        bucketName)
-                                                                                .namespaceName(
-                                                                                        namespace)
-                                                                                .prefix(blobName)
-                                                                                .build(),
-                                                                        new AsyncHandler<>() {
-                                                                            @Override
-                                                                            public void onSuccess(
-                                                                                    ListObjectsRequest
-                                                                                            listObjectsRequest,
-                                                                                    ListObjectsResponse
-                                                                                            listObjectsResponse) {
-                                                                                log.debug(
-                                                                                        "successfully"
-                                                                                            + " listing"
-                                                                                            + " prefix:{},"
-                                                                                            + " bucket:"
-                                                                                            + " {}, namespace:"
-                                                                                            + " {}",
-                                                                                        blobName,
-                                                                                        bucketName,
-                                                                                        namespace);
-                                                                            }
 
-                                                                            @Override
-                                                                            public void onError(
-                                                                                    ListObjectsRequest
-                                                                                            listObjectsRequest,
-                                                                                    Throwable
-                                                                                            error) {
-                                                                                log.error(
-                                                                                        "error"
-                                                                                            + " listing"
-                                                                                            + " prefix:{},"
-                                                                                            + " bucket:"
-                                                                                            + " {}, namespace:"
-                                                                                            + " {}",
-                                                                                        blobName,
-                                                                                        bucketName,
-                                                                                        namespace,
-                                                                                        error);
-                                                                            }
-                                                                        })
-                                                                .get(30, TimeUnit.SECONDS)
-                                                                .getListObjects()
-                                                                .getObjects();
-                                            } catch (InterruptedException
-                                                    | ExecutionException
-                                                    | TimeoutException e) {
-                                                throw new RuntimeException(e);
-                                            }
-
-                                            if (objectSummaries.size() > 1) {
-                                                log.error("will not delete {}", blobName);
-                                                throw new RuntimeException(
-                                                        "Something is not right, when trying to"
-                                                            + " delete objects, we found more than"
-                                                            + " one object for the same blob");
-                                            }
-                                            if (objectSummaries.size() == 1) {
-                                                final String opcClientRequestId =
-                                                        createClientRequestId(
-                                                                "DELETE-ignoring-if-exists");
-                                                final ObjectSummary objectSummary =
-                                                        objectSummaries.get(0);
-                                                final String objectName = objectSummary.getName();
-                                                final Instant start = Instant.now();
-                                                final DeleteObjectRequest deleteObjectRequest =
-                                                        DeleteObjectRequest.builder()
+        blobNames.stream()
+                .forEach(
+                        blobName -> {
+                            List<ObjectSummary> objectSummaries;
+                            try {
+                                objectSummaries =
+                                        client.listObjects(
+                                                        ListObjectsRequest.builder()
                                                                 .bucketName(bucketName)
                                                                 .namespaceName(namespace)
-                                                                .objectName(objectName)
-                                                                .opcClientRequestId(
-                                                                        opcClientRequestId)
-                                                                .build();
-                                                Failsafe.with(
-                                                                getRetryPolicy(
-                                                                        objectName,
-                                                                        opcClientRequestId,
-                                                                        start.toEpochMilli(),
-                                                                        "DELETE-ignoring-if-exists"))
-                                                        .run(
-                                                                () ->
-                                                                        client.deleteObject(
-                                                                                deleteObjectRequest,
-                                                                                new AsyncHandler<
-                                                                                        DeleteObjectRequest,
-                                                                                        DeleteObjectResponse>() {
-                                                                                    @Override
-                                                                                    public void
-                                                                                            onSuccess(
-                                                                                                    DeleteObjectRequest
-                                                                                                            deleteObjectRequest,
-                                                                                                    DeleteObjectResponse
-                                                                                                            deleteObjectResponse) {}
+                                                                .prefix(blobName)
+                                                                .build(),
+                                                        new AsyncHandler<>() {
+                                                            @Override
+                                                            public void onSuccess(
+                                                                    ListObjectsRequest
+                                                                            listObjectsRequest,
+                                                                    ListObjectsResponse
+                                                                            listObjectsResponse) {
+                                                                log.debug(
+                                                                        "successfully"
+                                                                                + " listing"
+                                                                                + " prefix:{},"
+                                                                                + " bucket:"
+                                                                                + " {}, namespace:"
+                                                                                + " {}",
+                                                                        blobName,
+                                                                        bucketName,
+                                                                        namespace);
+                                                            }
 
-                                                                                    @Override
-                                                                                    public void
-                                                                                            onError(
-                                                                                                    DeleteObjectRequest
-                                                                                                            deleteObjectRequest,
-                                                                                                    Throwable
-                                                                                                            error) {}
-                                                                                }));
-                                            }
-                                        }));
+                                                            @Override
+                                                            public void onError(
+                                                                    ListObjectsRequest
+                                                                            listObjectsRequest,
+                                                                    Throwable error) {
+                                                                log.error(
+                                                                        "error"
+                                                                                + " listing"
+                                                                                + " prefix:{},"
+                                                                                + " bucket:"
+                                                                                + " {}, namespace:"
+                                                                                + " {}",
+                                                                        blobName,
+                                                                        bucketName,
+                                                                        namespace,
+                                                                        error);
+                                                            }
+                                                        })
+                                                .get(30, TimeUnit.SECONDS)
+                                                .getListObjects()
+                                                .getObjects();
+                            } catch (InterruptedException
+                                    | ExecutionException
+                                    | TimeoutException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            if (objectSummaries.size() > 1) {
+                                log.error("will not delete {}", blobName);
+                                throw new RuntimeException(
+                                        "Something is not right, when trying to"
+                                                + " delete objects, we found more than"
+                                                + " one object for the same blob");
+                            }
+                            if (objectSummaries.size() == 1) {
+                                final String opcClientRequestId =
+                                        createClientRequestId("DELETE-ignoring-if-exists");
+                                final ObjectSummary objectSummary = objectSummaries.get(0);
+                                final String objectName = objectSummary.getName();
+                                final Instant start = Instant.now();
+                                final DeleteObjectRequest deleteObjectRequest =
+                                        DeleteObjectRequest.builder()
+                                                .bucketName(bucketName)
+                                                .namespaceName(namespace)
+                                                .objectName(objectName)
+                                                .opcClientRequestId(opcClientRequestId)
+                                                .build();
+                                Failsafe.with(
+                                                getRetryPolicy(
+                                                        objectName,
+                                                        opcClientRequestId,
+                                                        start.toEpochMilli(),
+                                                        "DELETE-ignoring-if-exists"))
+                                        .run(
+                                                () ->
+                                                        client.deleteObject(
+                                                                deleteObjectRequest,
+                                                                new AsyncHandler<
+                                                                        DeleteObjectRequest,
+                                                                        DeleteObjectResponse>() {
+                                                                    @Override
+                                                                    public void onSuccess(
+                                                                            DeleteObjectRequest
+                                                                                    deleteObjectRequest,
+                                                                            DeleteObjectResponse
+                                                                                    deleteObjectResponse) {}
+
+                                                                    @Override
+                                                                    public void onError(
+                                                                            DeleteObjectRequest
+                                                                                    deleteObjectRequest,
+                                                                            Throwable error) {}
+                                                                }));
+                            }
+                        });
     }
 
     boolean blobExists(String blobName) throws IOException {

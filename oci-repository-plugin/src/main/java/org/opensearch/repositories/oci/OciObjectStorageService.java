@@ -75,11 +75,9 @@ public class OciObjectStorageService implements Closeable {
                                 clientSettings.getEndpoint()));
 
         final ObjectStorageAsync objectStorageClient =
-                SocketAccess.doPrivilegedIOException(
-                        () ->
-                                ObjectStorageAsyncClient.builder()
-                                        .configuration(ClientConfiguration.builder().build())
-                                        .build(clientSettings.getAuthenticationDetailsProvider()));
+                ObjectStorageAsyncClient.builder()
+                        .configuration(ClientConfiguration.builder().build())
+                        .build(clientSettings.getAuthenticationDetailsProvider());
 
         objectStorageClient.setEndpoint(clientSettings.getEndpoint());
 

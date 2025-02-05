@@ -1,5 +1,5 @@
 grant {
-  // Please, keep in sync with oci-repository-plugin/src/test/resources/test-security.policy
+  // Please, keep in sync with oci-repository-plugin/src/main/plugin-metadata/plugin-security.policy
   // Per https://docs.cloud.oracle.com/en-us/iaas/Content/API/SDKDocs/javasdkconfig.htm
 
   // Required by Jersey
@@ -17,5 +17,13 @@ grant {
 
   // Read various config files e.g. /home/user/.oci
   permission java.io.FilePermission "<<ALL FILES>>", "read";
+
+  // only for tests
+  permission java.lang.RuntimePermission "setSecurityManager";
+  permission java.lang.RuntimePermission "createSecurityManager";
+
+  permission java.net.SocketPermission "*", "accept,resolve,listen";
+  permission java.util.PropertyPermission "opensearch.allow_insecure_settings", "read,write";
+  permission java.lang.RuntimePermission "*";
 };
 
