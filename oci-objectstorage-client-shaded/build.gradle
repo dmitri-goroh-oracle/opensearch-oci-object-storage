@@ -26,8 +26,8 @@ jar {
 dependencies {
     // Please use compile only to prevent leaking original namespace to dependant projects.
     // Works together with ShadowJar`s configurations = [project.configurations.compileClasspath]
-    compileOnly("com.oracle.oci.sdk:oci-java-sdk-common-httpclient:${sdk_version}")
-    compileOnly("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:${sdk_version}")
+    //compileOnly("com.oracle.oci.sdk:oci-java-sdk-common-httpclient:${sdk_version}")
+    //compileOnly("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:${sdk_version}")
     compileOnly("com.oracle.oci.sdk:oci-java-sdk-objectstorage:${sdk_version}")
     compileOnly("com.oracle.oci.sdk:oci-java-sdk-common:${sdk_version}")
     compileOnly("com.oracle.oci.sdk:oci-java-sdk-objectstorage-generated:${sdk_version}")
@@ -40,7 +40,7 @@ tasks.named('shadowJar', ShadowJar) {
     // Relocating dependencies with its transitive dependencies.
     enableRelocation = true
     relocationPrefix = "org.opensearch.repositories.oci.sdk"
-    archiveClassifier = ""
+    archiveClassifier = null
     // Relocating META-INF/services
     mergeServiceFiles()
     // https://gradleup.com/shadow/getting-started/#default-java-groovy-tasks
@@ -52,4 +52,4 @@ tasks.named('shadowJar', ShadowJar) {
     //    META-INF/*.RSA
 }
 
-tasks.build.dependsOn tasks.shadowJar
+tasks.assemble.dependsOn tasks.shadowJar

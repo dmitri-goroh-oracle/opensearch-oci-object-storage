@@ -3,7 +3,7 @@ package org.opensearch.fixtures.oci;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.Region;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.auth.SimpleAuthenticationDetailsProvider;
-import org.opensearch.repositories.oci.sdk.com.oracle.bmc.http.client.jersey.ApacheClientProperties;
+//import org.opensearch.repositories.oci.sdk.com.oracle.bmc.http.client.jersey.ApacheClientProperties;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.model.Range;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.objectstorage.ObjectStorage;
 import org.opensearch.repositories.oci.sdk.com.oracle.bmc.objectstorage.ObjectStorageClient;
@@ -78,6 +78,7 @@ public class FixtureTests {
                     // can also add other things on top of it, like adding new
                     // headers
 
+                    /*
                     .additionalClientConfigurator(
                         builder -> {
                             // Define a connection manager and its
@@ -93,7 +94,7 @@ public class FixtureTests {
                                 ApacheClientProperties
                                     .CONNECTION_MANAGER,
                                 poolConnectionManager);
-                        })
+                        })*/
                         .endpoint("http://localhost:8080")
                         .build(authenticationDetailsProvider);
     }

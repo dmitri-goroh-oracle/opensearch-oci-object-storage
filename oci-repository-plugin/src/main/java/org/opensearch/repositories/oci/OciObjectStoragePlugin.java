@@ -24,7 +24,8 @@ import org.opensearch.indices.recovery.RecoverySettings;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.RepositoryPlugin;
 import org.opensearch.repositories.Repository;
-import org.opensearch.repositories.oci.sdk.com.oracle.bmc.http.client.HttpProvider;
+
+// import org.opensearch.repositories.oci.sdk.com.oracle.bmc.http.client.HttpProvider;
 
 /** The plugin class */
 public class OciObjectStoragePlugin extends Plugin implements RepositoryPlugin {
@@ -38,7 +39,7 @@ public class OciObjectStoragePlugin extends Plugin implements RepositoryPlugin {
         this.settings = settings;
 
         // Hack to force Jersey to load first as a default provider
-        HttpProvider.getDefault();
+        // HttpProvider.getDefault();
     }
 
     // overridable for tests
